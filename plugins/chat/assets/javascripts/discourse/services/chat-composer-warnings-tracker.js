@@ -2,9 +2,9 @@ import Service, { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import discourseDebounce from "discourse-common/lib/debounce";
 import { bind } from "discourse-common/utils/decorators";
-import { mentionRegex } from "pretty-text/mentions";
 import { cancel } from "@ember/runloop";
 import { tracked } from "@glimmer/tracking";
+import { parseMentionedUsernames } from "discourse/lib/parse-mentions";
 
 const MENTION_RESULT = {
   invalid: -1,
@@ -63,39 +63,36 @@ export default class ChatComposerWarningsTracker extends Service {
       return;
     }
 
-    const mentions = this._extractMentions(currentMessage.message.message);
-    console.log("extracted mentions are", mentions);
-    console.log(
-      "mentions extracted from cooked",
-      this._extractMentionsFromCooked(message.cooked)
-    );
-    this.mentionsCount = mentions?.length;
+    message.cook().then(() => {
+      const mentions = this._extractMentions(currentMessage.message.message);
+      this.mentionsCount = mentions?.length;
 
-    if (this.mentionsCount > 0) {
-      this.tooManyMentions =
-        this.mentionsCount > this.siteSettings.max_mentions_per_chat_message;
+      if (this.mentionsCount > 0) {
+        this.tooManyMentions =
+          this.mentionsCount > this.siteSettings.max_mentions_per_chat_message;
 
-      if (!this.tooManyMentions) {
-        const newMentions = mentions.filter(
-          (mention) => !(mention in this._mentionWarningsSeen)
-        );
+        if (!this.tooManyMentions) {
+          const newMentions = mentions.filter(
+            (mention) => !(mention in this._mentionWarningsSeen)
+          );
 
-        this.channelWideMentionDisallowed =
-          !currentMessage.channel.allowChannelWideMentions &&
-          (mentions.includes("here") || mentions.includes("all"));
+          this.channelWideMentionDisallowed =
+            !currentMessage.channel.allowChannelWideMentions &&
+            (mentions.includes("here") || mentions.includes("all"));
 
-        if (newMentions?.length > 0) {
-          this._recordNewWarnings(newMentions, mentions);
-        } else {
-          this._rebuildWarnings(mentions);
+          if (newMentions?.length > 0) {
+            this._recordNewWarnings(newMentions, mentions);
+          } else {
+            this._rebuildWarnings(mentions);
+          }
         }
+      } else {
+        this.tooManyMentions = false;
+        this.channelWideMentionDisallowed = false;
+        this.unreachableGroupMentions = [];
+        this.overMembersLimitGroupMentions = [];
       }
-    } else {
-      this.tooManyMentions = false;
-      this.channelWideMentionDisallowed = false;
-      this.unreachableGroupMentions = [];
-      this.overMembersLimitGroupMentions = [];
-    }
+    });
   }
 
   _extractMentions(message) {
@@ -117,23 +114,7 @@ export default class ChatComposerWarningsTracker extends Service {
       } else {
         mentionsLeft = false;
       }
-    }
-
-    return mentions;
-  }
-
-  _extractMentionsFromCooked(cooked) {
-    return this._parseMentionedUsernames(cooked);
-  }
-
-  _parseMentionedUsernames(cooked) {
-    const html = new DOMParser().parseFromString(cooked, "text/html");
-    const mentions = html.querySelectorAll("a.mention[href^='/u/']");
-    return Array.from(mentions, this._extractUsername);
-  }
-
-  _extractUsername(mentionNode) {
-    return mentionNode.innerText.substring(1);
+    });
   }
 
   _recordNewWarnings(newMentions, mentions) {
