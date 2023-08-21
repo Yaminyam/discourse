@@ -1,4 +1,13 @@
-import Controller, { inject as controller } from "@ember/controller";
+import Controller from "@ember/controller";
+import BulkTopicSelection from "discourse/mixins/bulk-topic-selection";
+import discourseComputed from "discourse-common/utils/decorators";
+import { action } from "@ember/object";
+import { disableImplicitInjections } from "discourse/lib/implicit-injections";
+import { setTopicList } from "discourse/lib/topic-list-tracker";
+import { inject as service } from "@ember/service";
+import { categoriesComponent } from "./discovery/categories";
+import { getOwner } from "@ember/application";
+import { tracked } from "@glimmer/tracking";
 
 // Just add query params here to have them automatically passed to topic list filters.
 export const queryParams = {
@@ -55,8 +64,15 @@ export function addDiscoveryQueryParam(p, opts) {
   queryParams[p] = opts;
 }
 
-export default class DiscoverySortableController extends Controller {
-  @controller("discovery/topics") discoveryTopics;
+@disableImplicitInjections
+export default class DiscoverySortableController extends Controller.extend(
+  BulkTopicSelection
+) {
+  @service composer;
+  @service siteSettings;
+  @service site;
+
+  @tracked subcategoryList;
 
   queryParams = Object.keys(queryParams);
 
@@ -65,5 +81,70 @@ export default class DiscoverySortableController extends Controller {
     this.queryParams.forEach((p) => {
       this[p] = queryParams[p].default;
     });
+
+    this.resetSelected();
+  }
+
+  @discourseComputed("model.filter", "model.topics.length")
+  showDismissRead(filter, topicsLength) {
+    return (
+      this._isFilterPage(this.model.get("filter"), "unread") && topicsLength > 0
+    );
+  }
+
+  @discourseComputed("model.filter", "model.topics.length")
+  showResetNew(filter, topicsLength) {
+    return this._isFilterPage(filter, "new") && topicsLength > 0;
+  }
+
+  @action
+  toggleBulkSelect() {
+    this.bulkSelectEnabled = !this.bulkSelectEnabled;
+  }
+
+  @action
+  createTopic() {
+    this.composer.openNewTopic({
+      category: this.createTopicTargetCategory,
+      preferDraft: true,
+    });
+  }
+
+  get createTopicTargetCategory() {
+    if (this.category?.canCreateTopic) {
+      return this.category;
+    }
+
+    if (this.siteSettings.default_subcategory_on_read_only_category) {
+      return this.category?.subcategoryWithCreateTopicPermission;
+    }
+  }
+
+  get createTopicDisabled() {
+    // We are in a category route, but user does not have permission for the category
+    return this.category && !this.createTopicTargetCategory;
+  }
+
+  get subcategoriesComponent() {
+    if (this.subcategoryList) {
+      const componentName = categoriesComponent({
+        site: this.site,
+        siteSettings: this.siteSettings,
+        parentCategory: this.subcategoryList.parentCategory,
+      });
+
+      // Todo, the `categoriesComponent` function should return a component class instead of a string
+      return getOwner(this).resolveRegistration(`component:${componentName}`);
+    }
+  }
+
+  @action
+  setTrackingTopicList(model) {
+    setTopicList(model);
+  }
+
+  @action
+  changePeriod(p) {
+    this.set("period", p);
   }
 }

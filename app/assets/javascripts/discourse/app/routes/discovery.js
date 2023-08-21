@@ -1,13 +1,11 @@
 import DiscourseRoute from "discourse/routes/discourse";
 import User from "discourse/models/user";
-import { setTopicList } from "discourse/lib/topic-list-tracker";
 import { action } from "@ember/object";
 import { resetCachedTopicList } from "discourse/lib/cached-topic-list";
 import { inject as service } from "@ember/service";
 
 /**
   The parent route for all discovery routes.
-  Handles the logic for showing the loading spinners.
 **/
 export default class DiscoveryRoute extends DiscourseRoute {
   @service router;
@@ -45,27 +43,6 @@ export default class DiscoveryRoute extends DiscourseRoute {
         });
       }
     }
-  }
-
-  @action
-  loading() {
-    this.controllerFor("discovery").loadingBegan();
-
-    // We don't want loading to bubble
-    return true;
-  }
-
-  @action
-  loadingComplete() {
-    this.controllerFor("discovery").loadingComplete();
-  }
-
-  @action
-  didTransition() {
-    this.send("loadingComplete");
-
-    const model = this.controllerFor("discovery/topics").get("model");
-    setTopicList(model);
   }
 
   // clear a pinned topic

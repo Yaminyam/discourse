@@ -24,6 +24,8 @@ class AbstractCategoryRoute extends DiscourseRoute {
 
   queryParams = queryParams;
 
+  templateName = "discovery/list";
+
   model(modelParams) {
     const category = Category.findBySlugPathWithID(
       modelParams.category_slug_path_with_id
@@ -71,7 +73,6 @@ class AbstractCategoryRoute extends DiscourseRoute {
       return;
     }
 
-    this._setupNavigation(category);
     return all([
       this._createSubcategoryList(category),
       this._retrieveTopicList(category, transition, modelParams),
@@ -84,16 +85,16 @@ class AbstractCategoryRoute extends DiscourseRoute {
       : this.routeConfig?.filter;
   }
 
-  _setupNavigation(category) {
+  _navigationArgs(category) {
     const noSubcategories =
         this.routeConfig && !!this.routeConfig.no_subcategories,
       filterType = this.filter(category).split("/")[0];
 
-    this.controllerFor("navigation/category").setProperties({
+    return {
       category,
       filterType,
       noSubcategories,
-    });
+    };
   }
 
   _createSubcategoryList(category) {
@@ -156,14 +157,16 @@ class AbstractCategoryRoute extends DiscourseRoute {
     const topics = this.topics,
       category = model.category;
 
+    controller.setProperties({
+      discovery: this.controllerFor("discovery"),
+      navigationArgs: this._navigationArgs(category),
+      subcategoryList: this._categoryList,
+    });
+
     let topicOpts = {
       model: topics,
       category,
-      period:
-        topics.get("for_period") ||
-        (model.modelParams && model.modelParams.period),
-      selected: [],
-      noSubcategories: this.routeConfig && !!this.routeConfig.no_subcategories,
+      noSubcategories: !!this.routeConfig?.no_subcategories,
       expandAllPinned: true,
     };
 
@@ -177,26 +180,10 @@ class AbstractCategoryRoute extends DiscourseRoute {
       }
     }
 
-    this.controllerFor("discovery/topics").setProperties(topicOpts);
     this.searchService.searchContext = category.get("searchContext");
     this.set("topics", null);
-  }
 
-  renderTemplate() {
-    this.render("navigation/category", { outlet: "navigation-bar" });
-
-    if (this._categoryList) {
-      this.render("discovery/categories", {
-        outlet: "header-list-container",
-        model: this._categoryList,
-      });
-    } else {
-      this.disconnectOutlet({ outlet: "header-list-container" });
-    }
-    this.render("discovery/topics", {
-      controller: "discovery/topics",
-      outlet: "list-container",
-    });
+    controller.setProperties(topicOpts);
   }
 
   deactivate() {

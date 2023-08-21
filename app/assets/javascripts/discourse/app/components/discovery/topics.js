@@ -1,9 +1,6 @@
-import { inject as controller } from "@ember/controller";
 import { inject as service } from "@ember/service";
 import { alias, empty, equal, gt, readOnly } from "@ember/object/computed";
-import BulkTopicSelection from "discourse/mixins/bulk-topic-selection";
 import DismissTopics from "discourse/mixins/dismiss-topics";
-import DiscoveryController from "discourse/controllers/discovery";
 import I18n from "I18n";
 import Topic from "discourse/models/topic";
 import deprecated from "discourse-common/lib/deprecated";
@@ -12,14 +9,11 @@ import { endWith } from "discourse/lib/computed";
 import { routeAction } from "discourse/helpers/route-action";
 import { userPath } from "discourse/lib/url";
 import { action } from "@ember/object";
+import Component from "@ember/component";
 
-export default class TopicsController extends DiscoveryController.extend(
-  BulkTopicSelection,
-  DismissTopics
-) {
+export default class DiscoveryTopics extends Component.extend(DismissTopics) {
   @service router;
   @service composer;
-  @controller discovery;
 
   period = null;
   selected = null;
@@ -39,16 +33,6 @@ export default class TopicsController extends DiscoveryController.extend(
   @equal("period", "monthly") monthly;
   @equal("period", "weekly") weekly;
   @equal("period", "daily") daily;
-
-  @discourseComputed("model.filter", "model.topics.length")
-  showDismissRead(filter, topicsLength) {
-    return this._isFilterPage(filter, "unread") && topicsLength > 0;
-  }
-
-  @discourseComputed("model.filter", "model.topics.length")
-  showResetNew(filter, topicsLength) {
-    return this._isFilterPage(filter, "new") && topicsLength > 0;
-  }
 
   callResetNew(dismissPosts = false, dismissTopics = false, untrack = false) {
     const tracked =
@@ -98,22 +82,6 @@ export default class TopicsController extends DiscoveryController.extend(
       }
     );
     return routeAction("changeSort", this.router._router, ...arguments)();
-  }
-
-  @action
-  refresh() {
-    this.send("triggerRefresh");
-  }
-
-  afterRefresh(filter, list, listModel = list) {
-    this.setProperties({ model: listModel });
-    this.resetSelected();
-
-    if (this.topicTrackingState) {
-      this.topicTrackingState.sync(list, filter);
-    }
-
-    this.send("loadingComplete");
   }
 
   @discourseComputed("model.filter")

@@ -29,18 +29,16 @@
 
 <DiscoveryTopicsList
   @model={{this.model}}
-  @refresh={{action "refresh"}}
-  @loadingComplete={{action "loadingComplete"}}
   @incomingCount={{this.topicTrackingState.incomingCount}}
-  @autoAddTopicsToBulkSelect={{this.autoAddTopicsToBulkSelect}}
-  @bulkSelectEnabled={{this.bulkSelectEnabled}}
-  @addTopicsToBulkSelect={{action "addTopicsToBulkSelect"}}
+  @autoAddTopicsToBulkSelect={{@autoAddTopicsToBulkSelect}}
+  @bulkSelectEnabled={{@bulkSelectEnabled}}
+  @addTopicsToBulkSelect={{@addTopicsToBulkSelect}}
 >
   {{#if this.top}}
     <div class="top-lists">
       <PeriodChooser
-        @period={{this.period}}
-        @action={{action "changePeriod"}}
+        @period={{@period}}
+        @action={{@changePeriod}}
         @fullDay={{false}}
       />
     </div>
@@ -76,18 +74,15 @@
       @top={{this.top}}
       @showTopicPostBadges={{this.showTopicPostBadges}}
       @showPosters={{true}}
-      @canBulkSelect={{this.canBulkSelect}}
+      @canBulkSelect={{@canBulkSelect}}
       @changeSort={{route-action "changeSort"}}
-      @toggleBulkSelect={{action "toggleBulkSelect"}}
-      @updateAutoAddTopicsToBulkSelect={{action
-        "updateAutoAddTopicsToBulkSelect"
-      }}
+      @toggleBulkSelect={{@toggleBulkSelect}}
+      @updateAutoAddTopicsToBulkSelect={{this.updateAutoAddTopicsToBulkSelect}}
       @hideCategory={{this.model.hideCategory}}
       @order={{this.order}}
       @ascending={{this.ascending}}
-      @bulkSelectEnabled={{this.bulkSelectEnabled}}
-      @bulkSelectAction={{action "refresh"}}
-      @selected={{this.selected}}
+      @bulkSelectEnabled={{@bulkSelectEnabled}}
+      @selected={{@selected}}
       @expandGloballyPinned={{this.expandGloballyPinned}}
       @expandAllPinned={{this.expandAllPinned}}
       @category={{this.category}}
@@ -142,10 +137,7 @@
             "topic.browse_all_categories_latest_or_top" basePath=(base-path)
           )
         }}
-        <TopPeriodButtons
-          @period={{this.period}}
-          @action={{action "changePeriod"}}
-        />
+        <TopPeriodButtons @period={{@period}} @action={{@changePeriod}} />
       {{else}}
         {{html-safe
           (i18n "topic.browse_all_categories_latest" basePath=(base-path))
