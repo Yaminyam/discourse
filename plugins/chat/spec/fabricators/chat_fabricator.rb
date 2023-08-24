@@ -69,13 +69,14 @@ Fabricator(:no_service_chat_message, class_name: "Chat::Message") do
   after_create { |message, attrs| message.create_mentions }
 end
 
-Fabricator(:service_chat_message, class_name: "Chat::MessageCreator") do
+Fabricator(:service_chat_message, class_name: "Chat::CreateMessage") do
   transient :chat_channel,
             :user,
             :message,
             :in_reply_to,
             :thread,
-            :upload_ids
+            :upload_ids,
+            :incoming_chat_webhook
 
   initialize_with do |transients|
     channel =
@@ -85,14 +86,15 @@ Fabricator(:service_chat_message, class_name: "Chat::MessageCreator") do
     Group.refresh_automatic_groups!
     channel.add(user)
 
-    resolved_class.create(
-      chat_channel: channel,
-      user: user,
-      content: transients[:message] || Faker::Lorem.paragraph_by_chars(number: 500),
+    resolved_class.call(
+      chat_channel_id: channel.id,
+      guardian: Guardian.new(user),
+      message: transients[:message] || Faker::Lorem.paragraph_by_chars(number: 500),
       thread_id: transients[:thread]&.id,
       in_reply_to_id: transients[:in_reply_to]&.id,
       upload_ids: transients[:upload_ids],
-    ).chat_message
+      incoming_chat_webhook: transients[:incoming_chat_webhook],
+    ).message
   end
 end
 

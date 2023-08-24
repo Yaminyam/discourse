@@ -471,14 +471,14 @@ after_initialize do
         placeholders = { channel_name: channel.title(sender) }.merge(context["placeholders"] || {})
 
         creator =
-          Chat::MessageCreator.create(
+          Chat::CreateMessage.call(
             chat_channel: channel,
-            user: sender,
+            guardian: Guardian.new(sender),
             content: utils.apply_placeholders(fields.dig("message", "value"), placeholders),
           )
 
-        if creator.failed?
-          Rails.logger.warn "[discourse-automation] Chat message failed to send, error was: #{creator.error}"
+        if creator.failure?
+          Rails.logger.warn "[discourse-automation] Chat message failed to send:\n#{creator.inspect_steps.inspect}\n#{creator.inspect_steps.error}"
         end
       end
     end
@@ -486,7 +486,12 @@ after_initialize do
 
   add_api_key_scope(
     :chat,
-    { create_message: { actions: %w[chat/chat#create_message], params: %i[chat_channel_id] } },
+    {
+      create_message: {
+        actions: %w[chat/api/channel_messages#create],
+        params: %i[chat_channel_id],
+      },
+    },
   )
 
   # Dark mode email styles
