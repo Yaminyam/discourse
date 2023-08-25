@@ -18,6 +18,7 @@ import { tracked } from "@glimmer/tracking";
 import ChatMessage from "discourse/plugins/chat/discourse/models/chat-message";
 import { MESSAGE_CONTEXT_THREAD } from "discourse/plugins/chat/discourse/components/chat-message";
 import I18n from "I18n";
+import FlagModal from "discourse/components/modal/flag";
 
 const removedSecondaryActions = new Set();
 
@@ -338,8 +339,13 @@ export default class ChatMessageInteractor {
     const model = new ChatMessage(this.message.channel, this.message);
     model.username = this.message.user?.username;
     model.user_id = this.message.user?.id;
-    const controller = showModal("flag", { model });
-    controller.set("flagTarget", new ChatMessageFlag());
+    this.modal.show(FlagModal, {
+      model: {
+        flagTarget: new ChatMessageFlag(),
+        post: model,
+        setHidden: () => model.set("hidden", true),
+      },
+    });
   }
 
   @action
