@@ -12,6 +12,7 @@ import { classify } from "@ember/string";
 export default class Flag extends Component {
   @service adminTools;
   @service currentUser;
+  @service siteSettings
 
   @tracked userDetails;
   @tracked selected;
@@ -99,6 +100,61 @@ export default class Flag extends Component {
     if (this.spammerDetails) {
       this.spammerDetails.deleteUser().then(() => window.location.reload());
     }
+  }
+
+  @discourseComputed("flagTarget")
+  title(flagTarget) {
+    return flagTarget.title();
+  },
+
+  @discourseComputed(
+    "post",
+    "flagTarget",
+    "model.actions_summary.@each.can_act"
+  )
+  flagsAvailable() {
+    return this.flagTarget.flagsAvailable(this, this.site, this.model);
+  },
+
+  @discourseComputed(
+    "post",
+    "flagTarget",
+    "model.actions_summary.@each.can_act"
+  )
+  staffFlagsAvailable() {
+    return (
+      this.get("model.flagsAvailable") &&
+      this.get("model.flagsAvailable").length > 1
+    );
+  },
+
+  get submitEnabled() {
+    const selected = this.selected;
+    if (!this.selected) {
+      return false;
+    }
+
+    if (this.selected.is_custom_flag) {
+      const len = this.message.length || 0;
+      return (
+        len >= this.siteSettings.min_personal_message_post_length &&
+        len <= MAX_MESSAGE_LENGTH
+      );
+    }
+    return true;
+  },
+
+  get notifyModeratorsFlag() {
+    const notifyModeratorsID = 7;
+    return this.flagsAvailable.find((f) => f.id === notifyModeratorsID);
+  },
+
+  get canTakeAction() {
+    return (
+      !this.args.model.flagTarget.targetsTopic() &&
+      !this.selected.is_custom_flag &&
+      this.currentUser.staff
+    );
   }
 
   @action

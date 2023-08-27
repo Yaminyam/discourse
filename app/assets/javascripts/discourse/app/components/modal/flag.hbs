@@ -34,7 +34,7 @@
     <DButton
       class="btn-primary"
       @action={{this.createFlag}}
-      @disabled={{this.submitDisabled}}
+      @disabled={{not this.submitEnabled}}
       @title="flagging.submit_tooltip"
       @icon={{this.submitIcon}}
       @label={{this.submitLabel}}
@@ -44,7 +44,7 @@
       <DButton
         class="btn-danger"
         @action={{this.createFlagAsWarning}}
-        @disabled={{this.submitDisabled}}
+        @disabled={{not this.submitEnabled}}
         @icon="exclamation-triangle"
         @label="flagging.official_warning"
       />
@@ -54,13 +54,13 @@
       <ReviewableBundledAction
         @bundle={{this.flagActions}}
         @performAction={{this.takeAction}}
-        @reviewableUpdating={{this.submitDisabled}}
+        @reviewableUpdating={{not this.submitEnabled}}
       />
 
       <DButton
         class="btn-danger"
         @action={{this.flagForReview}}
-        @disabled={{or this.submitDisabled this.cantFlagForReview}}
+        @disabled={{unless (or this.submitEnabled this.notifyModeratorsFlag)}}
         @icon="exclamation-triangle"
         @label="flagging.flag_for_review"
       />
@@ -70,7 +70,7 @@
       <DButton
         class="btn-danger"
         @action={{this.deleteSpammer}}
-        @disabled={{this.submitDisabled}}
+        @disabled={{not this.submitEnabled}}
         @icon="exclamation-triangle"
         @label="flagging.delete_spammer"
       />
